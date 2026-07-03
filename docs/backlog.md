@@ -16,6 +16,8 @@ Status: complete for first pass.
 - Add idempotent upsert by market date.
 - Enforce atomic writes when one or more metric parsers fail.
 
+Status: complete for JSON ledger first pass.
+
 ## Milestone 3: Data Ingestion Prototype
 
 - Select public or paid sources for all four metrics.
@@ -23,11 +25,32 @@ Status: complete for first pass.
 - Normalize units and timestamps.
 - Add parser tests with recorded fixtures.
 
+Status: complete for public-source prototype.
+
+Current notes:
+
+- VIX, market breadth, equity put/call, and high-yield spread sources are wired into the scheduled updater.
+- Parser validation rejects missing, zero, malformed, and out-of-range market statistics.
+- Public-page parsing remains a reliability risk; revisit licensed APIs if the dashboard becomes operationally important.
+
 ## Milestone 4: Scheduler and Operations
 
 - Run once daily after U.S. market close and data publication.
 - Record run status separately from market snapshots.
 - Surface ingestion failures in the UI.
+
+Status: partially complete.
+
+Completed:
+
+- Weekday GitHub Actions schedule.
+- Manual workflow trigger.
+- Atomic ledger commit when validation passes.
+
+Remaining:
+
+- Separate run-status log.
+- User-visible ingestion failure state.
 
 ## Milestone 5: Production Dashboard
 

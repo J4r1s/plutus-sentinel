@@ -39,15 +39,27 @@ The workflow:
 - Runs on weekdays at `23:30 UTC`, safely after the normal U.S. cash-market close.
 - Executes `node scripts/update-ledger.mjs`.
 - Commits `data/ledger.json` only when every required metric is fetched and validated.
-- Exits without changing the ledger when a configured source is stale.
+- Exits without changing the ledger when a configured source is stale, malformed, missing, zero, or out of range.
 
 Current data-source state:
 
 - VIX: Cboe historical VIX CSV.
-- Equity put/call: Cboe Daily Market Statistics page. The updater reads the published `EQUITY PUT/CALL RATIO` value and can fall back to `data/manual-overrides.json` if the page is temporarily unavailable or changes shape.
+- Equity put/call: Cboe Daily Market Statistics page. The updater reads the published `EQUITY PUT/CALL RATIO` value and requires it to be finite, greater than 0, and no greater than 10.
 - High-yield credit spread: FRED `BAMLH0A0HYM2`.
-- Market breadth: Barchart `$S5TH`, S&P 500 stocks above the 200-day average. The updater reads the published breadth value and falls back to `data/manual-overrides.json` if the public page is temporarily unavailable or changes shape.
+- Market breadth: Barchart `$S5TH`, S&P 500 stocks above the 200-day average. The updater reads the published breadth value and requires it to be finite, greater than 0, and no greater than 100.
 
-The update script is intentionally atomic. If any parser fails, any source is stale, or any required value is missing, the run exits without modifying the ledger. Scheduled GitHub runs are configured to no-op on stale sources so the automation can stay enabled while provider gaps are resolved.
+The update script is intentionally atomic. If any parser fails, any source is stale, or any required value is missing, the run exits without modifying the ledger. Scheduled GitHub runs are configured to no-op only on stale sources so the automation can stay enabled while publication timing varies.
+
+Manual overrides in `data/manual-overrides.json` are reserved for source fetch failures. If a source can be reached but returns an unexpected shape or invalid value, the run must fail so the parser or source decision can be reviewed.
 
 Public-page providers are acceptable for the early free version, but they are less durable than formal APIs. If the project becomes user-facing or depends on long-term history, replace public-page parsing with a licensed API source or keep the generated ledger as the durable record of daily snapshots.
+
+## Verification Commands
+
+Before committing source or parser changes, run:
+
+```text
+node --check scripts/update-ledger.mjs
+node --test
+node scripts/update-ledger.mjs --dry-run
+```

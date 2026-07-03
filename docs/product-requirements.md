@@ -1,7 +1,7 @@
 # Product Requirements Specification
 
 Project: U.S. Stock Dip Sentinel  
-Document Version: 1.1  
+Document Version: 1.2  
 Status: Complete Functional Specification
 
 ## Product Overview
@@ -89,3 +89,29 @@ The dashboard must include:
 - Daily historical writes must be atomic. Parser failures abort the full run.
 - The ledger must never record partial datasets or default null/zero fallbacks.
 - Ingestion must execute once daily after official market close and data publication.
+
+## Fetched Data Verification Requirements
+
+Fetched market data must be treated as untrusted until it passes validation. A successful network response is not enough to accept a metric.
+
+Each daily ingestion run must verify:
+
+- Presence: every required metric is present in the retrieved source payload.
+- Numeric shape: each metric resolves to a finite number.
+- Domain range: values that are structurally impossible or operationally suspicious must be rejected before scoring.
+- Freshness: the source observation date must be within the accepted publication window for that metric.
+- Completeness: a snapshot may be persisted only when all required metrics are valid.
+- Traceability: persisted snapshots must identify the source and observation date used for each metric.
+
+Current domain validation rules:
+
+- VIX must be a finite positive number.
+- S&P 500 200-day breadth must be greater than 0% and no greater than 100%.
+- Equity-only put/call ratio must be greater than 0 and within a plausible upper bound.
+- High-yield credit spread must be a finite positive percentage.
+
+If a source is unavailable because it cannot be reached, an explicitly maintained manual override may be used only when it also passes the same shape, range, freshness, and traceability checks.
+
+If a source is reachable but returns a missing, zero, malformed, stale, or unexpected value, the ingestion run must fail loudly and leave the existing ledger unchanged. This failure mode is intentional so source changes can be detected, investigated, and fixed rather than silently masked.
+
+Verification coverage must include tests for valid data, missing values, zero values, out-of-range values, malformed payloads, and invalid manual overrides.
