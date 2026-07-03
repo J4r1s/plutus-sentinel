@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildBackfillSnapshots,
   latestBarchartBreadth,
   latestCboeDailyPutCall,
   latestManualMetric,
@@ -53,4 +54,39 @@ test("metric range helper rejects finite but nonsensical values", () => {
     () => metricInRange("Test metric", "2026-07-02", 0, { minExclusive: 0, maxInclusive: 100 }),
     /Out-of-range metric/
   );
+});
+
+test("backfill snapshots join historical VIX and credit rows while carrying current-only values", () => {
+  const snapshots = buildBackfillSnapshots({
+    vixCsv: [
+      "DATE,OPEN,HIGH,LOW,CLOSE",
+      "06/30/2026,16,17,15,16.50",
+      "07/01/2026,15,16,14,15.75"
+    ].join("\n"),
+    creditCsv: [
+      "observation_date,BAMLH0A0HYM2",
+      "2026-06-30,2.80",
+      "2026-07-01,2.74"
+    ].join("\n"),
+    currentBreadth: {
+      source: "Barchart $S5TH S&P 500 stocks above 200-day average",
+      date: "2026-07-02",
+      value: 66.07
+    },
+    currentPutCall: {
+      source: "Cboe daily market statistics equity put/call ratio",
+      date: "2026-07-03",
+      value: 0.53
+    },
+    days: 2,
+    endDate: "2026-07-01"
+  });
+
+  assert.equal(snapshots.length, 2);
+  assert.equal(snapshots[0].date, "2026-07-01");
+  assert.equal(snapshots[0].vix, 15.75);
+  assert.equal(snapshots[0].creditSpread, 2.74);
+  assert.equal(snapshots[0].breadth, 66.07);
+  assert.equal(snapshots[0].sources.breadth.carriedFromDate, "2026-07-02");
+  assert.match(snapshots[0].sources.putCall.source, /carried backward/);
 });

@@ -63,3 +63,23 @@ node --check scripts/update-ledger.mjs
 node --test
 node scripts/update-ledger.mjs --dry-run
 ```
+
+## Historical Backfill
+
+The updater supports a limited historical backfill mode:
+
+```text
+node scripts/update-ledger.mjs --backfill-days=14
+```
+
+Backfill uses real historical rows where free sources currently provide them:
+
+- VIX from Cboe historical CSV.
+- High-yield credit spread from FRED.
+
+Current-only public sources are carried backward only when no reliable free historical endpoint is available:
+
+- Barchart `$S5TH` breadth.
+- Cboe Daily Market Statistics equity put/call.
+
+Carried values are marked in each snapshot's source metadata with `carriedFromDate` so they can be replaced later if a historical provider is added.

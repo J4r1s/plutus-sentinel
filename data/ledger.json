@@ -1,33 +1,314 @@
 {
-  "generatedAt": "2026-07-03T12:10:44.673Z",
+  "generatedAt": "2026-07-03T12:26:50.493Z",
   "sourceMode": "automated-with-public-page-fallbacks",
   "snapshots": [
     {
       "date": "2026-07-01",
-      "vix": 16.15,
+      "vix": 16.59,
       "breadth": 66.07,
       "putCall": 0.53,
       "creditSpread": 2.74,
       "sources": {
         "vix": {
           "source": "Cboe VIX history",
-          "date": "2026-07-02",
-          "value": 16.15
+          "date": "2026-07-01",
+          "value": 16.59
         },
         "breadth": {
-          "source": "Barchart $S5TH S&P 500 stocks above 200-day average",
-          "date": "2026-07-02",
-          "value": 66.07
+          "source": "Barchart $S5TH S&P 500 stocks above 200-day average (carried backward for 2026-07-01 backfill)",
+          "date": "2026-07-01",
+          "value": 66.07,
+          "carriedFromDate": "2026-07-02"
         },
         "putCall": {
-          "source": "Cboe daily market statistics equity put/call ratio",
-          "date": "2026-07-03",
-          "value": 0.53
+          "source": "Cboe daily market statistics equity put/call ratio (carried backward for 2026-07-01 backfill)",
+          "date": "2026-07-01",
+          "value": 0.53,
+          "carriedFromDate": "2026-07-03"
         },
         "creditSpread": {
           "source": "FRED BAMLH0A0HYM2",
           "date": "2026-07-01",
           "value": 2.74
+        }
+      }
+    },
+    {
+      "date": "2026-06-30",
+      "vix": 16.45,
+      "breadth": 66.07,
+      "putCall": 0.53,
+      "creditSpread": 2.75,
+      "sources": {
+        "vix": {
+          "source": "Cboe VIX history",
+          "date": "2026-06-30",
+          "value": 16.45
+        },
+        "breadth": {
+          "source": "Barchart $S5TH S&P 500 stocks above 200-day average (carried backward for 2026-06-30 backfill)",
+          "date": "2026-06-30",
+          "value": 66.07,
+          "carriedFromDate": "2026-07-02"
+        },
+        "putCall": {
+          "source": "Cboe daily market statistics equity put/call ratio (carried backward for 2026-06-30 backfill)",
+          "date": "2026-06-30",
+          "value": 0.53,
+          "carriedFromDate": "2026-07-03"
+        },
+        "creditSpread": {
+          "source": "FRED BAMLH0A0HYM2",
+          "date": "2026-06-30",
+          "value": 2.75
+        }
+      }
+    },
+    {
+      "date": "2026-06-29",
+      "vix": 17.65,
+      "breadth": 66.07,
+      "putCall": 0.53,
+      "creditSpread": 2.8,
+      "sources": {
+        "vix": {
+          "source": "Cboe VIX history",
+          "date": "2026-06-29",
+          "value": 17.65
+        },
+        "breadth": {
+          "source": "Barchart $S5TH S&P 500 stocks above 200-day average (carried backward for 2026-06-29 backfill)",
+          "date": "2026-06-29",
+          "value": 66.07,
+          "carriedFromDate": "2026-07-02"
+        },
+        "putCall": {
+          "source": "Cboe daily market statistics equity put/call ratio (carried backward for 2026-06-29 backfill)",
+          "date": "2026-06-29",
+          "value": 0.53,
+          "carriedFromDate": "2026-07-03"
+        },
+        "creditSpread": {
+          "source": "FRED BAMLH0A0HYM2",
+          "date": "2026-06-29",
+          "value": 2.8
+        }
+      }
+    },
+    {
+      "date": "2026-06-26",
+      "vix": 18.41,
+      "breadth": 66.07,
+      "putCall": 0.53,
+      "creditSpread": 2.83,
+      "sources": {
+        "vix": {
+          "source": "Cboe VIX history",
+          "date": "2026-06-26",
+          "value": 18.41
+        },
+        "breadth": {
+          "source": "Barchart $S5TH S&P 500 stocks above 200-day average (carried backward for 2026-06-26 backfill)",
+          "date": "2026-06-26",
+          "value": 66.07,
+          "carriedFromDate": "2026-07-02"
+        },
+        "putCall": {
+          "source": "Cboe daily market statistics equity put/call ratio (carried backward for 2026-06-26 backfill)",
+          "date": "2026-06-26",
+          "value": 0.53,
+          "carriedFromDate": "2026-07-03"
+        },
+        "creditSpread": {
+          "source": "FRED BAMLH0A0HYM2",
+          "date": "2026-06-26",
+          "value": 2.83
+        }
+      }
+    },
+    {
+      "date": "2026-06-25",
+      "vix": 18.89,
+      "breadth": 66.07,
+      "putCall": 0.53,
+      "creditSpread": 2.78,
+      "sources": {
+        "vix": {
+          "source": "Cboe VIX history",
+          "date": "2026-06-25",
+          "value": 18.89
+        },
+        "breadth": {
+          "source": "Barchart $S5TH S&P 500 stocks above 200-day average (carried backward for 2026-06-25 backfill)",
+          "date": "2026-06-25",
+          "value": 66.07,
+          "carriedFromDate": "2026-07-02"
+        },
+        "putCall": {
+          "source": "Cboe daily market statistics equity put/call ratio (carried backward for 2026-06-25 backfill)",
+          "date": "2026-06-25",
+          "value": 0.53,
+          "carriedFromDate": "2026-07-03"
+        },
+        "creditSpread": {
+          "source": "FRED BAMLH0A0HYM2",
+          "date": "2026-06-25",
+          "value": 2.78
+        }
+      }
+    },
+    {
+      "date": "2026-06-24",
+      "vix": 18.63,
+      "breadth": 66.07,
+      "putCall": 0.53,
+      "creditSpread": 2.76,
+      "sources": {
+        "vix": {
+          "source": "Cboe VIX history",
+          "date": "2026-06-24",
+          "value": 18.63
+        },
+        "breadth": {
+          "source": "Barchart $S5TH S&P 500 stocks above 200-day average (carried backward for 2026-06-24 backfill)",
+          "date": "2026-06-24",
+          "value": 66.07,
+          "carriedFromDate": "2026-07-02"
+        },
+        "putCall": {
+          "source": "Cboe daily market statistics equity put/call ratio (carried backward for 2026-06-24 backfill)",
+          "date": "2026-06-24",
+          "value": 0.53,
+          "carriedFromDate": "2026-07-03"
+        },
+        "creditSpread": {
+          "source": "FRED BAMLH0A0HYM2",
+          "date": "2026-06-24",
+          "value": 2.76
+        }
+      }
+    },
+    {
+      "date": "2026-06-23",
+      "vix": 19.49,
+      "breadth": 66.07,
+      "putCall": 0.53,
+      "creditSpread": 2.71,
+      "sources": {
+        "vix": {
+          "source": "Cboe VIX history",
+          "date": "2026-06-23",
+          "value": 19.49
+        },
+        "breadth": {
+          "source": "Barchart $S5TH S&P 500 stocks above 200-day average (carried backward for 2026-06-23 backfill)",
+          "date": "2026-06-23",
+          "value": 66.07,
+          "carriedFromDate": "2026-07-02"
+        },
+        "putCall": {
+          "source": "Cboe daily market statistics equity put/call ratio (carried backward for 2026-06-23 backfill)",
+          "date": "2026-06-23",
+          "value": 0.53,
+          "carriedFromDate": "2026-07-03"
+        },
+        "creditSpread": {
+          "source": "FRED BAMLH0A0HYM2",
+          "date": "2026-06-23",
+          "value": 2.71
+        }
+      }
+    },
+    {
+      "date": "2026-06-22",
+      "vix": 17.28,
+      "breadth": 66.07,
+      "putCall": 0.53,
+      "creditSpread": 2.65,
+      "sources": {
+        "vix": {
+          "source": "Cboe VIX history",
+          "date": "2026-06-22",
+          "value": 17.28
+        },
+        "breadth": {
+          "source": "Barchart $S5TH S&P 500 stocks above 200-day average (carried backward for 2026-06-22 backfill)",
+          "date": "2026-06-22",
+          "value": 66.07,
+          "carriedFromDate": "2026-07-02"
+        },
+        "putCall": {
+          "source": "Cboe daily market statistics equity put/call ratio (carried backward for 2026-06-22 backfill)",
+          "date": "2026-06-22",
+          "value": 0.53,
+          "carriedFromDate": "2026-07-03"
+        },
+        "creditSpread": {
+          "source": "FRED BAMLH0A0HYM2",
+          "date": "2026-06-22",
+          "value": 2.65
+        }
+      }
+    },
+    {
+      "date": "2026-06-19",
+      "vix": 16.78,
+      "breadth": 66.07,
+      "putCall": 0.53,
+      "creditSpread": 2.66,
+      "sources": {
+        "vix": {
+          "source": "Cboe VIX history",
+          "date": "2026-06-19",
+          "value": 16.78
+        },
+        "breadth": {
+          "source": "Barchart $S5TH S&P 500 stocks above 200-day average (carried backward for 2026-06-19 backfill)",
+          "date": "2026-06-19",
+          "value": 66.07,
+          "carriedFromDate": "2026-07-02"
+        },
+        "putCall": {
+          "source": "Cboe daily market statistics equity put/call ratio (carried backward for 2026-06-19 backfill)",
+          "date": "2026-06-19",
+          "value": 0.53,
+          "carriedFromDate": "2026-07-03"
+        },
+        "creditSpread": {
+          "source": "FRED BAMLH0A0HYM2",
+          "date": "2026-06-19",
+          "value": 2.66
+        }
+      }
+    },
+    {
+      "date": "2026-06-18",
+      "vix": 16.4,
+      "breadth": 66.07,
+      "putCall": 0.53,
+      "creditSpread": 2.66,
+      "sources": {
+        "vix": {
+          "source": "Cboe VIX history",
+          "date": "2026-06-18",
+          "value": 16.4
+        },
+        "breadth": {
+          "source": "Barchart $S5TH S&P 500 stocks above 200-day average (carried backward for 2026-06-18 backfill)",
+          "date": "2026-06-18",
+          "value": 66.07,
+          "carriedFromDate": "2026-07-02"
+        },
+        "putCall": {
+          "source": "Cboe daily market statistics equity put/call ratio (carried backward for 2026-06-18 backfill)",
+          "date": "2026-06-18",
+          "value": 0.53,
+          "carriedFromDate": "2026-07-03"
+        },
+        "creditSpread": {
+          "source": "FRED BAMLH0A0HYM2",
+          "date": "2026-06-18",
+          "value": 2.66
         }
       }
     }

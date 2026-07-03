@@ -15,6 +15,7 @@ const sources = {
 
 const maxAgeDays = Number(process.env.MAX_SOURCE_AGE_DAYS || 14);
 const dryRun = process.argv.includes("--dry-run");
+const backfillDays = numberArg("--backfill-days");
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main().catch((error) => {
@@ -51,25 +52,21 @@ async function main() {
 
   validateFreshMetrics(metrics, maxAgeDays);
 
-  const date = latestSharedDate(metrics);
-  const snapshot = {
-    date,
-    vix: metrics.vix.value,
-    breadth: metrics.breadth.value,
-    putCall: metrics.putCall.value,
-    creditSpread: metrics.creditSpread.value,
-    sources: {
-      vix: metrics.vix,
-      breadth: metrics.breadth,
-      putCall: metrics.putCall,
-      creditSpread: metrics.creditSpread
-    }
-  };
+  const newSnapshots = backfillDays
+    ? buildBackfillSnapshots({
+      vixCsv,
+      creditCsv,
+      currentBreadth: metrics.breadth,
+      currentPutCall: metrics.putCall,
+      days: backfillDays,
+      endDate: latestSharedDate(metrics)
+    })
+    : [buildSnapshot(latestSharedDate(metrics), metrics)];
 
   const existingSnapshots = ledger.sourceMode === "sample"
     ? []
     : (ledger.snapshots || []).filter((row) => row.sources);
-  const snapshots = upsertSnapshot(existingSnapshots, snapshot);
+  const snapshots = upsertSnapshots(existingSnapshots, newSnapshots);
   const nextLedger = {
     generatedAt: new Date().toISOString(),
     sourceMode: "automated-with-public-page-fallbacks",
@@ -77,12 +74,12 @@ async function main() {
   };
 
   if (dryRun) {
-    console.log(`Dry run passed for ${date}`);
+    console.log(`Dry run passed for ${newSnapshots.length} snapshot(s) through ${newSnapshots[0]?.date}`);
     return;
   }
 
   await writeJsonAtomic(ledgerPath, nextLedger);
-  console.log(`Updated ledger with ${date}`);
+  console.log(`Updated ledger with ${newSnapshots.length} snapshot(s) through ${newSnapshots[0]?.date}`);
 }
 
 async function fetchText(url) {
@@ -126,6 +123,12 @@ function latestVix(csv) {
   return metric("Cboe VIX history", normalizeDate(row.DATE), Number(row.CLOSE));
 }
 
+function historicalVix(csv) {
+  return parseCsv(csv)
+    .filter((row) => row.DATE && row.CLOSE)
+    .map((row) => metric("Cboe VIX history", normalizeDate(row.DATE), Number(row.CLOSE)));
+}
+
 function latestCboeDailyPutCall(text) {
   const value = firstFiniteNumber([
     text.match(/EQUITY PUT\/CALL RATIO\s+([\d.]+)/i)?.[1],
@@ -162,6 +165,12 @@ function latestCreditSpread(csv) {
   const rows = parseCsv(csv);
   const row = lastDataRow(rows, ["observation_date", "BAMLH0A0HYM2"]);
   return metric("FRED BAMLH0A0HYM2", row.observation_date, Number(row.BAMLH0A0HYM2));
+}
+
+function historicalCreditSpread(csv) {
+  return parseCsv(csv)
+    .filter((row) => row.observation_date && row.BAMLH0A0HYM2 && row.BAMLH0A0HYM2 !== ".")
+    .map((row) => metric("FRED BAMLH0A0HYM2", row.observation_date, Number(row.BAMLH0A0HYM2)));
 }
 
 function latestManualMetric(overrides, key, reason) {
@@ -208,6 +217,61 @@ function metricInRange(source, date, value, { minExclusive, maxInclusive }) {
     throw new Error(`Out-of-range metric from ${source}: ${result.value}`);
   }
   return result;
+}
+
+function buildSnapshot(date, metrics) {
+  return {
+    date,
+    vix: metrics.vix.value,
+    breadth: metrics.breadth.value,
+    putCall: metrics.putCall.value,
+    creditSpread: metrics.creditSpread.value,
+    sources: {
+      vix: metrics.vix,
+      breadth: metrics.breadth,
+      putCall: metrics.putCall,
+      creditSpread: metrics.creditSpread
+    }
+  };
+}
+
+function buildBackfillSnapshots({ vixCsv, creditCsv, currentBreadth, currentPutCall, days, endDate }) {
+  if (!Number.isInteger(days) || days < 1 || days > 90) {
+    throw new Error(`Unsupported backfill window: ${days}`);
+  }
+
+  const startDate = addDays(endDate, -(days - 1));
+  const vixByDate = new Map(historicalVix(vixCsv).map((value) => [value.date, value]));
+  const creditRows = historicalCreditSpread(creditCsv)
+    .filter((value) => value.date >= startDate && value.date <= endDate)
+    .sort((a, b) => b.date.localeCompare(a.date));
+
+  const snapshots = creditRows
+    .filter((creditSpread) => vixByDate.has(creditSpread.date))
+    .map((creditSpread) => {
+      const date = creditSpread.date;
+      return buildSnapshot(date, {
+        vix: vixByDate.get(date),
+        breadth: carriedBackfillMetric(currentBreadth, date),
+        putCall: carriedBackfillMetric(currentPutCall, date),
+        creditSpread
+      });
+    });
+
+  if (snapshots.length === 0) {
+    throw new Error(`No complete historical rows found from ${startDate} through ${endDate}`);
+  }
+
+  return snapshots;
+}
+
+function carriedBackfillMetric(value, snapshotDate) {
+  return {
+    ...value,
+    source: `${value.source} (carried backward for ${snapshotDate} backfill)`,
+    carriedFromDate: value.date,
+    date: snapshotDate
+  };
 }
 
 function parseCsv(csv) {
@@ -290,6 +354,24 @@ function todayIsoDate() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function addDays(date, days) {
+  const value = new Date(`${date}T00:00:00Z`);
+  value.setUTCDate(value.getUTCDate() + days);
+  return value.toISOString().slice(0, 10);
+}
+
+function numberArg(name) {
+  const exact = process.argv.find((arg) => arg.startsWith(`${name}=`));
+  if (!exact) {
+    return null;
+  }
+  const value = Number(exact.slice(name.length + 1));
+  if (!Number.isInteger(value)) {
+    throw new Error(`Invalid ${name}: ${exact}`);
+  }
+  return value;
+}
+
 function validateFreshMetrics(metrics, maxDays) {
   const now = new Date();
   for (const [name, value] of Object.entries(metrics)) {
@@ -308,13 +390,15 @@ function latestSharedDate(metrics) {
     .at(0);
 }
 
-function upsertSnapshot(existing, snapshot) {
-  const next = existing.filter((row) => row.date !== snapshot.date);
-  next.push(snapshot);
+function upsertSnapshots(existing, snapshots) {
+  const dates = new Set(snapshots.map((snapshot) => snapshot.date));
+  const next = existing.filter((row) => !dates.has(row.date));
+  next.push(...snapshots);
   return next.sort((a, b) => b.date.localeCompare(a.date));
 }
 
 export {
+  buildBackfillSnapshots,
   latestBarchartBreadth,
   latestCboeDailyPutCall,
   latestManualMetric,
