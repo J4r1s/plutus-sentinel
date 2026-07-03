@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>U.S. Stock Dip Sentinel</title>
+    <link rel="stylesheet" href="./src/styles.css" />
+  </head>
+  <body>
+    <main>
+      <header class="hero" data-hero>
+        <p class="hero-kicker">U.S. Stock Dip Sentinel</p>
+        <h1 data-regime>Loading market regime</h1>
+        <p class="hero-command" data-command></p>
+        <p class="directive" data-directive></p>
+        <div class="hero-meta" aria-label="Current market summary">
+          <span data-score></span>
+          <span data-credit></span>
+          <span data-date></span>
+        </div>
+      </header>
+
+      <section aria-labelledby="metrics-title">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">Signal Components</p>
+            <h2 id="metrics-title">Latest Sub-Metrics</h2>
+          </div>
+          <p>Each card shows raw value, score contribution, and current bracket.</p>
+        </div>
+        <div class="metric-grid" data-metrics></div>
+      </section>
+
+      <section aria-labelledby="chart-title">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">History</p>
+            <h2 id="chart-title">Aggregate Sentiment Score</h2>
+          </div>
+          <p>Fixed 0-12 scale for comparing calm, rotation, and panic zones.</p>
+        </div>
+        <div class="chart-panel" data-chart></div>
+      </section>
+
+      <section aria-labelledby="ledger-title">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">Audit Trail</p>
+            <h2 id="ledger-title">Historical Ledger</h2>
+          </div>
+          <p>Descending daily snapshots with route output preserved.</p>
+        </div>
+        <div class="ledger-controls" data-ledger-controls></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Score</th>
+                <th>VIX</th>
+                <th>Breadth</th>
+                <th>Put/Call</th>
+                <th>HY Credit</th>
+                <th>Regime</th>
+              </tr>
+            </thead>
+            <tbody data-ledger></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>
