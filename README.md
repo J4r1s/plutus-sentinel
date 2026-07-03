@@ -59,11 +59,12 @@ Implemented:
 - High-yield credit spread circuit breaker.
 - Six-route playbook matrix.
 - Dashboard hero state, metric cards, score chart, and historical ledger.
+- Generated ledger loading from `data/ledger.json`.
+- GitHub Actions workflow for scheduled ledger updates.
 - Test coverage for route priority and bracket behavior.
 
 Not implemented yet:
 
-- Automated market data ingestion.
-- Durable database persistence.
-- Scheduled daily execution.
-- Live external data sources.
+- Fully automated market breadth ingestion.
+- Durable database persistence beyond the generated JSON ledger.
+- Private portfolio tracking or trade journal records.

@@ -1,0 +1,32 @@
+name: Update market ledger
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "30 23 * * 1-5"
+
+permissions:
+  contents: write
+
+jobs:
+  update-ledger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Update ledger
+        env:
+          NOOP_ON_STALE: "true"
+        run: node scripts/update-ledger.mjs
+
+      - name: Commit updated ledger
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Update market ledger"
+          file_pattern: data/ledger.json

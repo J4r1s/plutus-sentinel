@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "node server.mjs",
+    "update:ledger": "node scripts/update-ledger.mjs",
     "test": "node --test"
   }
 }

@@ -1,14 +1,44 @@
 import { evaluateSnapshot } from "./core/sentinel.js";
 import { sampleLedger } from "./data/sample-ledger.js";
 
-const snapshots = sampleLedger.map(evaluateSnapshot).sort((a, b) => b.date.localeCompare(a.date));
+const ledger = await loadLedger();
+const snapshots = ledger.snapshots.map(evaluateSnapshot).sort((a, b) => b.date.localeCompare(a.date));
 const latest = snapshots[0];
 
+renderDataStatus(ledger);
 renderHero(latest);
 renderMetricCards(latest);
 renderChart(snapshots);
 renderLedgerControls(snapshots);
 renderLedger(snapshots);
+
+async function loadLedger() {
+  try {
+    const response = await fetch("./data/ledger.json", { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`Ledger fetch failed: ${response.status}`);
+    }
+    const ledger = await response.json();
+    if (!Array.isArray(ledger.snapshots) || ledger.snapshots.length === 0) {
+      throw new Error("Ledger contains no snapshots");
+    }
+    return ledger;
+  } catch (error) {
+    console.warn(error);
+    return {
+      generatedAt: null,
+      sourceMode: "sample-fallback",
+      snapshots: sampleLedger
+    };
+  }
+}
+
+function renderDataStatus(ledger) {
+  const status = document.querySelector("[data-source-status]");
+  const generated = ledger.generatedAt ? `Updated ${new Date(ledger.generatedAt).toLocaleString()}` : "Sample data";
+  status.textContent = `${generated} | ${ledger.sourceMode}`;
+  status.dataset.mode = ledger.sourceMode;
+}
 
 function renderHero(snapshot) {
   const hero = document.querySelector("[data-hero]");

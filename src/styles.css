@@ -109,6 +109,18 @@ h1 {
   font-weight: 800;
 }
 
+.source-status {
+  margin: 0;
+  font-size: 0.86rem;
+  font-weight: 750;
+  opacity: 0.78;
+}
+
+.source-status[data-mode="sample"],
+.source-status[data-mode="sample-fallback"] {
+  opacity: 1;
+}
+
 section {
   margin-top: 26px;
 }

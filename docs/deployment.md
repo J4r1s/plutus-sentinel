@@ -28,3 +28,24 @@ Keep GitHub Pages while the app only shows public market-signal data. Revisit ho
 - Authenticated exports or imports.
 
 Those features will likely need an application host and database instead of static hosting alone.
+
+## Daily Ledger Automation
+
+The repository includes a GitHub Actions workflow at `.github/workflows/update-ledger.yml`.
+
+The workflow:
+
+- Runs manually through `workflow_dispatch`.
+- Runs on weekdays at `23:30 UTC`, safely after the normal U.S. cash-market close.
+- Executes `node scripts/update-ledger.mjs`.
+- Commits `data/ledger.json` only when every required metric is fetched and validated.
+- Exits without changing the ledger when a configured source is stale.
+
+Current data-source state:
+
+- VIX: Cboe historical VIX CSV.
+- Equity put/call: Cboe equity put/call CSV candidate. This source is currently stale and must be replaced or validated before trusted production updates.
+- High-yield credit spread: FRED `BAMLH0A0HYM2`.
+- Market breadth: manual override in `data/manual-overrides.json` until an automated breadth provider is selected.
+
+The update script is intentionally atomic. If any parser fails, any source is stale, or any required value is missing, the run exits without modifying the ledger. Scheduled GitHub runs are configured to no-op on stale sources so the automation can stay enabled while provider gaps are resolved.
