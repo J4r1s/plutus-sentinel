@@ -8,7 +8,8 @@ const overridesPath = join(root, "data", "manual-overrides.json");
 
 const sources = {
   vix: "https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv",
-  putCall: "https://cdn.cboe.com/resources/options/volume_and_call_put_ratios/equitypc.csv",
+  putCall: "https://www.cboe.com/markets/us/options/market-statistics/daily",
+  breadth: "https://www.barchart.com/stocks/quotes/%24S5TH",
   creditSpread: "https://fred.stlouisfed.org/graph/fredgraph.csv?id=BAMLH0A0HYM2"
 };
 
@@ -26,19 +27,28 @@ main().catch((error) => {
 });
 
 async function main() {
-  const [ledger, overrides, vixCsv, putCallCsv, creditCsv] = await Promise.all([
+  const [ledger, overrides, vixCsv, putCallHtmlResult, breadthHtmlResult, creditCsv] = await Promise.all([
     readJson(ledgerPath),
     readJson(overridesPath),
     fetchText(sources.vix),
-    fetchText(sources.putCall),
+    fetchOptionalText(sources.putCall),
+    fetchOptionalText(sources.breadth),
     fetchText(sources.creditSpread)
   ]);
 
   const metrics = {
     vix: latestVix(vixCsv),
-    putCall: latestPutCall(putCallCsv),
+    putCall: latestProviderOrManual(
+      () => latestCboeDailyPutCall(putCallHtmlResult),
+      overrides,
+      "putCall"
+    ),
     creditSpread: latestCreditSpread(creditCsv),
-    breadth: latestManualBreadth(overrides)
+    breadth: latestProviderOrManual(
+      () => latestBarchartBreadth(breadthHtmlResult),
+      overrides,
+      "breadth"
+    )
   };
 
   validateFreshMetrics(metrics, maxAgeDays);
@@ -58,10 +68,13 @@ async function main() {
     }
   };
 
-  const snapshots = upsertSnapshot(ledger.snapshots || [], snapshot);
+  const existingSnapshots = ledger.sourceMode === "sample"
+    ? []
+    : (ledger.snapshots || []).filter((row) => row.sources);
+  const snapshots = upsertSnapshot(existingSnapshots, snapshot);
   const nextLedger = {
     generatedAt: new Date().toISOString(),
-    sourceMode: "automated-with-manual-breadth",
+    sourceMode: "automated-with-public-page-fallbacks",
     snapshots
   };
 
@@ -91,6 +104,14 @@ async function fetchText(url) {
   }
 }
 
+async function fetchOptionalText(url) {
+  try {
+    return { ok: true, text: await fetchText(url) };
+  } catch (error) {
+    return { ok: false, error };
+  }
+}
+
 async function readJson(path) {
   return JSON.parse(await readFile(path, "utf8"));
 }
@@ -107,10 +128,43 @@ function latestVix(csv) {
   return metric("Cboe VIX history", normalizeDate(row.DATE), Number(row.CLOSE));
 }
 
-function latestPutCall(csv) {
-  const rows = parseCsv(csv);
-  const row = lastDataRow(rows, ["DATE", "P/C Ratio"]);
-  return metric("Cboe equity put/call ratio", normalizeDate(row.DATE), Number(row["P/C Ratio"]));
+function latestCboeDailyPutCall(result) {
+  if (!result.ok) {
+    throw result.error;
+  }
+
+  const value = firstFiniteNumber([
+    result.text.match(/EQUITY PUT\/CALL RATIO\s+([\d.]+)/i)?.[1],
+    result.text.match(/EQUITY PUT\/CALL RATIO\\",\\"value\\":\\"([\d.]+)\\"/i)?.[1],
+    result.text.match(/EQUITY PUT\/CALL RATIO","value":"([\d.]+)"/i)?.[1]
+  ]);
+  if (!Number.isFinite(value)) {
+    throw new Error("Cboe equity put/call ratio not found");
+  }
+
+  return metric("Cboe daily market statistics equity put/call ratio", todayIsoDate(), value);
+}
+
+function latestBarchartBreadth(result) {
+  if (!result.ok) {
+    throw result.error;
+  }
+
+  const header = barchartHeaderData(result.text);
+  const value = firstFiniteNumber([
+    header?.lastPrice,
+    result.text.match(/\$S5TH\s*:\s*([\d.]+)/i)?.[1],
+    result.text.match(/"symbol":"\$S5TH".*?"lastPrice":"([\d.]+)"/s)?.[1]
+  ]);
+  if (!Number.isFinite(value) || value < 0 || value > 100) {
+    throw new Error("Barchart $S5TH breadth value not found");
+  }
+
+  return metric(
+    "Barchart $S5TH S&P 500 stocks above 200-day average",
+    header?.tradeTime ? normalizeShortDate(header.tradeTime) : latestShortDateInHtml(result.text),
+    value
+  );
 }
 
 function latestCreditSpread(csv) {
@@ -119,12 +173,43 @@ function latestCreditSpread(csv) {
   return metric("FRED BAMLH0A0HYM2", row.observation_date, Number(row.BAMLH0A0HYM2));
 }
 
-function latestManualBreadth(overrides) {
-  const breadth = overrides.breadth;
-  if (!breadth) {
-    throw new Error("Missing manual breadth override");
+function latestProviderOrManual(provider, overrides, key) {
+  try {
+    return provider();
+  } catch (error) {
+    return latestManualMetric(overrides, key, error.message);
   }
-  return metric(breadth.source || "Manual breadth override", breadth.date, Number(breadth.value));
+}
+
+function latestManualMetric(overrides, key, reason) {
+  const value = overrides[key];
+  if (!value) {
+    throw new Error(`Missing manual ${key} override after provider failed: ${reason}`);
+  }
+  return metric(value.source || `Manual ${key} override`, value.date, Number(value.value));
+}
+
+function firstFiniteNumber(values) {
+  for (const value of values) {
+    const number = Number(value);
+    if (Number.isFinite(number)) {
+      return number;
+    }
+  }
+  return Number.NaN;
+}
+
+function barchartHeaderData(html) {
+  const match = html.match(/data-ng-init='init\((\{[^']*"symbol":"\$S5TH"[^']*\})\)'/s);
+  if (!match) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(match[1]);
+  } catch {
+    return null;
+  }
 }
 
 function metric(source, date, value) {
@@ -192,6 +277,26 @@ function normalizeDate(date) {
     throw new Error(`Unsupported date format: ${date}`);
   }
   return `${year}-${month}-${day}`;
+}
+
+function normalizeShortDate(date) {
+  const [month, day, year] = date.split("/").map((part) => part.padStart(2, "0"));
+  if (!year || !month || !day) {
+    throw new Error(`Unsupported date format: ${date}`);
+  }
+  return `20${year}-${month}-${day}`;
+}
+
+function latestShortDateInHtml(html) {
+  const dates = [...html.matchAll(/\bon\s+(\d{2}\/\d{2}\/\d{2})\b/g)].map((match) => normalizeShortDate(match[1]));
+  if (dates.length === 0) {
+    return todayIsoDate();
+  }
+  return dates.sort().at(-1);
+}
+
+function todayIsoDate() {
+  return new Date().toISOString().slice(0, 10);
 }
 
 function validateFreshMetrics(metrics, maxDays) {

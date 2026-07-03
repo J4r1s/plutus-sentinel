@@ -3,5 +3,10 @@
     "date": "2026-07-02",
     "value": 69.2,
     "source": "Manual placeholder until an automated breadth provider is selected"
+  },
+  "putCall": {
+    "date": "2026-07-02",
+    "value": 0.53,
+    "source": "Manual fallback for Cboe daily market statistics equity put/call ratio"
   }
 }

@@ -44,8 +44,10 @@ The workflow:
 Current data-source state:
 
 - VIX: Cboe historical VIX CSV.
-- Equity put/call: Cboe equity put/call CSV candidate. This source is currently stale and must be replaced or validated before trusted production updates.
+- Equity put/call: Cboe Daily Market Statistics page. The updater reads the published `EQUITY PUT/CALL RATIO` value and can fall back to `data/manual-overrides.json` if the page is temporarily unavailable or changes shape.
 - High-yield credit spread: FRED `BAMLH0A0HYM2`.
-- Market breadth: manual override in `data/manual-overrides.json` until an automated breadth provider is selected.
+- Market breadth: Barchart `$S5TH`, S&P 500 stocks above the 200-day average. The updater reads the published breadth value and falls back to `data/manual-overrides.json` if the public page is temporarily unavailable or changes shape.
 
 The update script is intentionally atomic. If any parser fails, any source is stale, or any required value is missing, the run exits without modifying the ledger. Scheduled GitHub runs are configured to no-op on stale sources so the automation can stay enabled while provider gaps are resolved.
+
+Public-page providers are acceptable for the early free version, but they are less durable than formal APIs. If the project becomes user-facing or depends on long-term history, replace public-page parsing with a licensed API source or keep the generated ledger as the durable record of daily snapshots.
