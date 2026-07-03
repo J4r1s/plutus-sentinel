@@ -16,15 +16,17 @@ const sources = {
 const maxAgeDays = Number(process.env.MAX_SOURCE_AGE_DAYS || 14);
 const dryRun = process.argv.includes("--dry-run");
 
-main().catch((error) => {
-  if (process.env.NOOP_ON_STALE === "true" && error.message.includes("source is stale")) {
-    console.warn(`No ledger update: ${error.message}`);
-    return;
-  }
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    if (process.env.NOOP_ON_STALE === "true" && error.message.includes("source is stale")) {
+      console.warn(`No ledger update: ${error.message}`);
+      return;
+    }
 
-  console.error(error.message);
-  process.exitCode = 1;
-});
+    console.error(error.message);
+    process.exitCode = 1;
+  });
+}
 
 async function main() {
   const [ledger, overrides, vixCsv, putCallHtmlResult, breadthHtmlResult, creditCsv] = await Promise.all([
@@ -38,17 +40,13 @@ async function main() {
 
   const metrics = {
     vix: latestVix(vixCsv),
-    putCall: latestProviderOrManual(
-      () => latestCboeDailyPutCall(putCallHtmlResult),
-      overrides,
-      "putCall"
-    ),
+    putCall: putCallHtmlResult.ok
+      ? latestCboeDailyPutCall(putCallHtmlResult.text)
+      : latestManualMetric(overrides, "putCall", putCallHtmlResult.error.message),
     creditSpread: latestCreditSpread(creditCsv),
-    breadth: latestProviderOrManual(
-      () => latestBarchartBreadth(breadthHtmlResult),
-      overrides,
-      "breadth"
-    )
+    breadth: breadthHtmlResult.ok
+      ? latestBarchartBreadth(breadthHtmlResult.text)
+      : latestManualMetric(overrides, "breadth", breadthHtmlResult.error.message)
   };
 
   validateFreshMetrics(metrics, maxAgeDays);
@@ -128,42 +126,35 @@ function latestVix(csv) {
   return metric("Cboe VIX history", normalizeDate(row.DATE), Number(row.CLOSE));
 }
 
-function latestCboeDailyPutCall(result) {
-  if (!result.ok) {
-    throw result.error;
-  }
-
+function latestCboeDailyPutCall(text) {
   const value = firstFiniteNumber([
-    result.text.match(/EQUITY PUT\/CALL RATIO\s+([\d.]+)/i)?.[1],
-    result.text.match(/EQUITY PUT\/CALL RATIO\\",\\"value\\":\\"([\d.]+)\\"/i)?.[1],
-    result.text.match(/EQUITY PUT\/CALL RATIO","value":"([\d.]+)"/i)?.[1]
+    text.match(/EQUITY PUT\/CALL RATIO\s+([\d.]+)/i)?.[1],
+    text.match(/EQUITY PUT\/CALL RATIO\\",\\"value\\":\\"([\d.]+)\\"/i)?.[1],
+    text.match(/EQUITY PUT\/CALL RATIO","value":"([\d.]+)"/i)?.[1]
   ]);
-  if (!Number.isFinite(value)) {
-    throw new Error("Cboe equity put/call ratio not found");
-  }
 
-  return metric("Cboe daily market statistics equity put/call ratio", todayIsoDate(), value);
+  return metricInRange("Cboe daily market statistics equity put/call ratio", todayIsoDate(), value, {
+    minExclusive: 0,
+    maxInclusive: 10
+  });
 }
 
-function latestBarchartBreadth(result) {
-  if (!result.ok) {
-    throw result.error;
-  }
-
-  const header = barchartHeaderData(result.text);
+function latestBarchartBreadth(text) {
+  const header = barchartHeaderData(text);
   const value = firstFiniteNumber([
     header?.lastPrice,
-    result.text.match(/\$S5TH\s*:\s*([\d.]+)/i)?.[1],
-    result.text.match(/"symbol":"\$S5TH".*?"lastPrice":"([\d.]+)"/s)?.[1]
+    text.match(/\$S5TH\s*:\s*([\d.]+)/i)?.[1],
+    text.match(/"symbol":"\$S5TH".*?"lastPrice":"([\d.]+)"/s)?.[1]
   ]);
-  if (!Number.isFinite(value) || value < 0 || value > 100) {
-    throw new Error("Barchart $S5TH breadth value not found");
-  }
 
-  return metric(
+  return metricInRange(
     "Barchart $S5TH S&P 500 stocks above 200-day average",
-    header?.tradeTime ? normalizeShortDate(header.tradeTime) : latestShortDateInHtml(result.text),
-    value
+    header?.tradeTime ? normalizeShortDate(header.tradeTime) : latestShortDateInHtml(text),
+    value,
+    {
+      minExclusive: 0,
+      maxInclusive: 100
+    }
   );
 }
 
@@ -171,14 +162,6 @@ function latestCreditSpread(csv) {
   const rows = parseCsv(csv);
   const row = lastDataRow(rows, ["observation_date", "BAMLH0A0HYM2"]);
   return metric("FRED BAMLH0A0HYM2", row.observation_date, Number(row.BAMLH0A0HYM2));
-}
-
-function latestProviderOrManual(provider, overrides, key) {
-  try {
-    return provider();
-  } catch (error) {
-    return latestManualMetric(overrides, key, error.message);
-  }
 }
 
 function latestManualMetric(overrides, key, reason) {
@@ -217,6 +200,14 @@ function metric(source, date, value) {
     throw new Error(`Invalid metric from ${source}`);
   }
   return { source, date, value };
+}
+
+function metricInRange(source, date, value, { minExclusive, maxInclusive }) {
+  const result = metric(source, date, value);
+  if (result.value <= minExclusive || result.value > maxInclusive) {
+    throw new Error(`Out-of-range metric from ${source}: ${result.value}`);
+  }
+  return result;
 }
 
 function parseCsv(csv) {
@@ -322,3 +313,11 @@ function upsertSnapshot(existing, snapshot) {
   next.push(snapshot);
   return next.sort((a, b) => b.date.localeCompare(a.date));
 }
+
+export {
+  latestBarchartBreadth,
+  latestCboeDailyPutCall,
+  latestManualMetric,
+  metricInRange,
+  validateFreshMetrics
+};
