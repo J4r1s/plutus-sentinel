@@ -1,7 +1,36 @@
 {
-  "generatedAt": "2026-07-17T01:00:57.108Z",
+  "generatedAt": "2026-07-18T00:55:25.074Z",
   "sourceMode": "automated-with-public-page-fallbacks",
   "snapshots": [
+    {
+      "date": "2026-07-16",
+      "vix": 18.77,
+      "breadth": 66.4,
+      "putCall": 0.67,
+      "creditSpread": 2.71,
+      "sources": {
+        "vix": {
+          "source": "Cboe VIX history",
+          "date": "2026-07-17",
+          "value": 18.77
+        },
+        "breadth": {
+          "source": "Barchart $S5TH S&P 500 stocks above 200-day average",
+          "date": "2026-07-17",
+          "value": 66.4
+        },
+        "putCall": {
+          "source": "Cboe daily market statistics equity put/call ratio",
+          "date": "2026-07-18",
+          "value": 0.67
+        },
+        "creditSpread": {
+          "source": "FRED BAMLH0A0HYM2",
+          "date": "2026-07-16",
+          "value": 2.71
+        }
+      }
+    },
     {
       "date": "2026-07-15",
       "vix": 16.73,
